@@ -1,8 +1,6 @@
-const ogs = require('open-graph-scraper');
-
 module.exports = async (req, res) => {
-  res.setHeader('Access-Control-Allow-Origin', '*'); // 👈 CORS erlauben
-  res.setHeader('Access-Control-Allow-Methods', 'GET'); // optional, sicherer
+  res.setHeader('Access-Control-Allow-Origin', '*');
+  res.setHeader('Access-Control-Allow-Methods', 'GET');
 
   const { url } = req.query;
 
@@ -11,18 +9,21 @@ module.exports = async (req, res) => {
   }
 
   try {
-    const { error, result } = await ogs({ url });
+    const response = await fetch(`https://api.microlink.io/?url=${encodeURIComponent(url)}`);
+    const result = await response.json();
 
-    if (error || !result.success) {
+    if (result.status !== 'success' || !result.data) {
       return res.status(500).json({ error: 'Fehler beim Abrufen der OG-Daten' });
     }
 
+    const { title, image } = result.data;
+
     res.status(200).json({
-      title: result.ogTitle || '',
-      image: result.ogImage?.url || '',
+      title: title || 'Kein Titel gefunden',
+      image: image?.url || '',
     });
   } catch (e) {
-    console.error('Fehler bei OG:', e);
+    console.error('Microlink-Fehler:', e);
     res.status(500).json({ error: 'Interner Fehler beim Abrufen der OG-Daten' });
   }
 };
